@@ -1,0 +1,67 @@
+---
+- name: Nginx - Letsencrypt - vhost configs
+  hosts: debian-nginx
+  become: yes
+  tasks:
+    # Uncomment this block to perform the actual configuration
+    - name: Configure NGINX for Let's Encrypt
+      template:
+        src: "nginx-letsencrypt.conf"
+        dest: "/etc/nginx/sites-available/letsencrypt.conf"
+      notify:
+        - reload nginx
+
+    # Create the symlink to the sites-enabled directory
+    - name: Enable sites
+      template:
+        src: "nginx-domain.conf.j2"
+        dest: "/etc/nginx/sites-enabled/{{ item }}.conf"
+        owner: root
+        group: root
+      vars:
+        domain: "{{ item }}"
+      with_items:
+        # - bhu.ddns.net
+        - k8s.cicd.ovh
+        - home.cicd.ovh
+
+    # Create directories under /var/www/ for each domain
+    - name: Create domain-specific webroot
+      file:
+        path: "/var/www/{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: 0755
+      with_items:
+        # - bhu.ddns.net
+        - k8s.cicd.ovh
+        - home.cicd.ovh
+
+    # Create index.html file in each webroot
+    - name: Create HTML index in domain-specific webroot
+      template:
+        src: "index.html.j2"
+        dest: "/var/www/{{ item }}/index.html"
+        owner: root
+        group: root
+      vars:
+        domain: "{{ item }}"
+      with_items:
+        # - bhu.ddns.net
+        - k8s.cicd.ovh
+        - home.cicd.ovh
+
+    #- name: Enable sites
+    #  file:
+    #    src: "/etc/nginx/sites-available/{{ item }}"
+    #    dest: "/etc/nginx/sites-enabled/{{ item }}"
+    #    state: link
+    #  with_items:
+    #    - k8s.cicd.ovh
+    #    - home.bhu.ovh
+
+    - name: reload nginx
+      service:
+        name: nginx
+        state: reloaded
