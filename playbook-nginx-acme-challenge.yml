@@ -1,0 +1,42 @@
+---
+- name: Nginx - Letsencrypt - ACME Challenge
+  hosts: debian-nginx
+  become: yes
+  tasks:
+    - name: Configure NGINX for Let's Encrypt
+      template:
+        src: "nginx-letsencrypt.conf"
+        dest: "/etc/nginx/sites-available/letsencrypt.conf"
+      notify:
+        - reload nginx
+
+    # Create the symlink to the sites-enabled directory
+    - name: Enable sites
+      file:
+        src: "/etc/nginx/sites-available/letsencrypt.conf"
+        dest: "/etc/nginx/sites-enabled/letsencrypt.conf"
+        state: link
+    
+    # Create the directory for the ACME challenge
+    - name: Create the directory for the ACME challenge
+      file:
+        path: "/var/www/letsencrypt"
+        state: directory
+        owner: root
+        group: root
+        mode: 0755
+
+    #- name: Enable sites
+    #  file:
+    #    src: "/etc/nginx/sites-available/{{ item }}"
+    #    dest: "/etc/nginx/sites-enabled/{{ item }}"
+    #    state: link
+    #  with_items:
+    #    - k8s.cicd.ovh
+    #    - home.bhu.ovh
+
+  handlers:
+    - name: reload nginx
+      service:
+        name: nginx
+        state: reloaded

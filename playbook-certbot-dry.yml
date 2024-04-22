@@ -1,0 +1,30 @@
+---
+- name: Nginx - Letsencrypt - run certbot dry-run
+  hosts: debian-nginx
+  become: yes
+  tasks:
+    - name: Perform a dry-run for certbot
+      # shell: certbot certonly --dry-run --webroot -d www.example.com -w /var/www/www.example.com
+      # shell: certbot certonly --dry-run --webroot -d {{ item }} -w /var/www/{{ item }}
+      shell: certbot certonly --dry-run --webroot -d {{ item }} -w /var/www/letsencrypt
+      register: certbot_dry_run
+      ignore_errors: yes
+      with_items:
+        # - bhu.ddns.net
+        - k8s.cicd.ovh
+        - home.cicd.ovh
+
+    # - debug:
+    #     var: item.item.stdout_lines
+    #   with_items:
+    #     - "{{ certbot_dry_run.results }}"
+
+    ## Uncomment this block to perform the actual configuration
+    #- name: Obtain Let's Encrypt certificates
+    #  shell: certbot certonly --webroot -d www.example.com -w /var/www/www.example.com
+
+  handlers:
+    - name: reload nginx
+      service:
+        name: nginx
+        state: reloaded
